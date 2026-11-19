@@ -129,7 +129,14 @@
     else { k = Math.max(1640 / availW, 1140 / availH); cx = 800; cy = 550; }
     return [cx - (availW / 2) * k, cy - (availH / 2) * k, W * k, H * k];
   }
+  // 3D 地圖（map3d.js 載入成功後透過 LispApp.use3D 掛上）
+  let view3d = null;
+  function panelInset() {
+    if (!panel.classList.contains("open")) return { right: 0, bottom: 0 };
+    return isMobile() ? { right: 0, bottom: panel.offsetHeight } : { right: panel.offsetWidth, bottom: 0 };
+  }
   function moveCamera(instant) {
+    if (view3d) { view3d.focus(state.cat, panelInset(), instant); return; }
     const to = targetView(), from = vb.slice(), t0 = performance.now(), dur = instant ? 0 : 650;
     cancelAnimationFrame(anim);
     const step = (now) => {
@@ -161,11 +168,14 @@
     // 地圖上的搜尋標記
     catList.forEach((c) => {
       const hits = t.length ? c.items.filter((it) => matches(it, t)).length : 0;
+      c.hits = hits;
+      c.dim = (t.length && !hits) || (!!state.cat && state.cat !== c.name);
       c.badge.setAttribute("visibility", t.length && hits ? "visible" : "hidden");
       c.badgeText.textContent = hits;
-      c.g.classList.toggle("dim", (t.length && !hits) || (!!state.cat && state.cat !== c.name));
+      c.g.classList.toggle("dim", c.dim);
       c.g.classList.toggle("active", state.cat === c.name);
     });
+    if (view3d) view3d.update({ active: state.cat, searching: t.length > 0 });
     $("#hint").style.opacity = state.cat || t.length ? 0 : 1;
 
     const open = !!(state.cat || t.length);
@@ -297,7 +307,20 @@
     if (e.key === "/" && document.activeElement !== qEl && !document.querySelector("dialog[open]")) { e.preventDefault(); qEl.focus(); }
     if (e.key === "Escape" && !document.querySelector("dialog[open]") && panel.classList.contains("open")) goHome();
   });
-  window.addEventListener("resize", () => moveCamera(true));
+  window.addEventListener("resize", () => { if (view3d) view3d.resize(panelInset()); else moveCamera(true); });
+
+  window.LispApp = {
+    catList, emoji: EMOJI, openCat,
+    get state() { return state; },
+    use3D(v) {
+      view3d = v;
+      svg.style.display = v ? "none" : "";
+      $("#hint").innerHTML = v
+        ? `點選島嶼進入分類 · 拖曳旋轉、滾輪縮放 · 共 <b>${catList.length}</b> 座島`
+        : `點選島嶼進入分類 · 共 <b>${catList.length}</b> 座島`;
+      render(); moveCamera(true);
+    },
+  };
 
   // ---------- 啟動 ----------
   drawIslands();
