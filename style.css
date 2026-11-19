@@ -58,6 +58,16 @@ main { flex: 1; position: relative; min-height: 0; }
 .island .emoji { text-anchor: middle; pointer-events: none; }
 .island.dim { opacity: .28; }
 .island.active .shore { stroke: #fff6c8; stroke-width: 6; }
+.island .person { text-anchor: middle; pointer-events: none; transform-box: fill-box; transform-origin: center bottom; }
+.island .person.on, .island:hover .person { animation: hop .5s ease-in-out infinite alternate; }
+@keyframes hop { from { transform: translateY(0) rotate(-6deg); } to { transform: translateY(-8px) rotate(6deg); } }
+.bubble { opacity: 0; transform: scale(.5); transform-box: fill-box; transform-origin: 20% 100%;
+  transition: opacity .25s, transform .3s cubic-bezier(.3,1.6,.5,1); pointer-events: none; }
+.bubble.on, .bubble.hover { opacity: 1; transform: scale(1); }
+.bubble.dim.on { opacity: 0; transform: scale(.5); }
+.bubble path { fill: #fff; stroke: #e8743b; stroke-width: 3; filter: drop-shadow(0 4px 6px rgba(0,0,0,.25)); }
+.bubble .b1 { fill: #e8743b; font-weight: 800; font-size: 22px; }
+.bubble .b2 { fill: #0f2233; font-weight: 700; font-size: 18px; }
 .badge-hit circle { fill: var(--accent); stroke: #fff; stroke-width: 3; }
 .badge-hit text { fill: #fff; font-weight: 700; font-size: 18px; text-anchor: middle; dominant-baseline: central; }
 

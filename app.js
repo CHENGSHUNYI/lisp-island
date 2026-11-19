@@ -10,6 +10,20 @@
     "文字": "🔤", "圖層": "🗂️", "系統/授權": "🔐", "圖面管理": "🗺️", "剖面/結構": "🏗️",
     "出圖/列印": "🖨️", "轉檔/匯出入": "🔄", "對齊/排列": "🧭", "查詢": "🔎", "其他": "📦", "3D": "🧊",
   };
+  // 各島代表人物喊的話（3D 與 2D 共用）
+  const SHOUT = {
+    "圖塊/屬性": "圖塊屬性一把抓", "繪圖": "線條畫到飛起來", "標註": "標註一鍵搞定",
+    "面積/數量統計": "面積坪數幫你算", "修改": "要改哪裡都行", "文字": "文字樣式全包辦",
+    "圖層": "圖層整理乾乾淨淨", "系統/授權": "系統設定我來顧", "圖面管理": "圖面管理不迷路",
+    "剖面/結構": "剖面自動長出來", "出圖/列印": "批次出圖超省時", "轉檔/匯出入": "檔案進出交給我",
+    "對齊/排列": "排得整整齊齊", "查詢": "什麼都查得到", "其他": "百寶箱應有盡有", "3D": "立體世界等你來",
+  };
+  // 2D 地圖用的人物（3D 版的人物在 map3d.js）
+  const PERSON = {
+    "圖塊/屬性": "🤹", "繪圖": "🧑‍🎨", "標註": "👷", "面積/數量統計": "🧑‍🔬", "修改": "🧑‍🔧",
+    "文字": "🧑‍🏫", "圖層": "🧑‍💻", "系統/授權": "💂", "圖面管理": "🧑‍💼", "剖面/結構": "👷‍♀️",
+    "出圖/列印": "🧑‍🏭", "轉檔/匯出入": "🏃", "對齊/排列": "🧑‍✈️", "查詢": "🕵️", "其他": "🧑‍🌾", "3D": "🧑‍🚀",
+  };
   // 島嶼位置（依支數由多到少排列後套用）
   const SLOTS = [
     [300, 240], [1300, 240], [800, 560], [300, 830], [1300, 840], [800, 200], [1030, 390], [560, 410],
@@ -84,7 +98,9 @@
     return e;
   };
 
+  const bubbleLayer = el("g", { id: "bubbles" });
   function drawIslands() {
+    svg.appendChild(bubbleLayer);
     catList.forEach((c, i) => {
       const g = el("g", { class: "island", tabindex: 0, role: "button", "aria-label": `${c.name}，${c.items.length} 支指令` }, gIslands);
       c.g = g;
@@ -108,6 +124,22 @@
       c.badge = el("g", { class: "badge-hit", visibility: "hidden" }, g);
       el("circle", { cx: c.x + c.r * 0.78, cy: c.y - c.r * 0.62, r: 20 }, c.badge);
       c.badgeText = el("text", { x: c.x + c.r * 0.78, y: c.y - c.r * 0.62 }, c.badge);
+
+      // 代表人物與對話框（對話框放在最上層，避免被其他島蓋住）
+      const px = c.x + c.r * 0.62, py = c.y + c.r * 0.28, ps = Math.max(30, c.r * 0.34);
+      c.person = el("text", { class: "person", x: px, y: py, "font-size": ps }, body);
+      c.person.textContent = PERSON[c.name] || "🧑";
+      const line = SHOUT[c.name] || "";
+      const bw = Math.max(130, line.length * 19 + 34), bh = 68;
+      const bx = px - 18, by = py - ps - bh - 6;
+      c.bubble = el("g", { class: "bubble" }, bubbleLayer);
+      el("path", {
+        d: `M${bx + 14},${by} h${bw - 28} q14,0 14,14 v${bh - 28} q0,14 -14,14 h${-(bw - 60)} l-14,14 l2,-14 h-20 q-14,0 -14,-14 v${-(bh - 28)} q0,-14 14,-14z`,
+      }, c.bubble);
+      const t1 = el("text", { x: bx + 14, y: by + 28, class: "b1" }, c.bubble); t1.textContent = "選我！";
+      const t2 = el("text", { x: bx + 14, y: by + 54, class: "b2" }, c.bubble); t2.textContent = line;
+      g.addEventListener("mouseenter", () => c.bubble.classList.add("hover"));
+      g.addEventListener("mouseleave", () => c.bubble.classList.remove("hover"));
 
       const go = () => openCat(c.name);
       g.addEventListener("click", go);
@@ -173,6 +205,7 @@
       c.badge.setAttribute("visibility", t.length && hits ? "visible" : "hidden");
       c.badgeText.textContent = hits;
       c.g.classList.toggle("dim", c.dim);
+      c.bubble.classList.toggle("dim", c.dim);
       c.g.classList.toggle("active", state.cat === c.name);
     });
     if (view3d) view3d.update({ active: state.cat, searching: t.length > 0 });
@@ -309,8 +342,20 @@
   });
   window.addEventListener("resize", () => { if (view3d) view3d.resize(panelInset()); else moveCamera(true); });
 
+  // 2D 地圖：人物輪流喊「選我！」
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    setInterval(() => {
+      if (view3d || document.hidden) return;
+      const pool = catList.filter((c) => !c.dim && !c.bubble.classList.contains("on"));
+      const c = pool[Math.floor(Math.random() * pool.length)];
+      if (!c) return;
+      c.bubble.classList.add("on"); c.person.classList.add("on");
+      setTimeout(() => { c.bubble.classList.remove("on"); c.person.classList.remove("on"); }, 3200);
+    }, 1700);
+  }
+
   window.LispApp = {
-    catList, emoji: EMOJI, openCat,
+    catList, emoji: EMOJI, shout: SHOUT, openCat,
     get state() { return state; },
     use3D(v) {
       view3d = v;

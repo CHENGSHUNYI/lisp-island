@@ -1,4 +1,4 @@
-// LISP 分類島導覽 — 3D 島嶼地圖（Three.js）
+// 鄭霸的LISP分類島導覽 — 3D 島嶼地圖（Three.js）
 // 不支援 WebGL 或載入失敗時，網頁會自動保留 2D 地圖。
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -66,6 +66,171 @@ function badgeTexture(n) {
   x.fillText(String(n), 64, 68);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// ---------- 各島代表人物（原創低多邊形職人） ----------
+const CHARS = {
+  "圖塊/屬性":   { shirt: 0xd9534f, pants: 0x3b4a6b, hat: "cap", hatColor: 0x9b2c2c, prop: "brick" },
+  "繪圖":        { shirt: 0x8e44ad, pants: 0x2c3e50, hat: "beret", hatColor: 0x22223b, prop: "pencil" },
+  "標註":        { shirt: 0xf39c12, pants: 0x34495e, hat: "hardhat", hatColor: 0xffffff, prop: "ruler" },
+  "面積/數量統計": { shirt: 0x2980b9, pants: 0x2c3e50, hat: "hair", hatColor: 0x3b2a1e, prop: "calc", glasses: true },
+  "修改":        { shirt: 0x2e6fbf, pants: 0x2e6fbf, hat: "cap", hatColor: 0xe67e22, prop: "wrench" },
+  "文字":        { shirt: 0x16a085, pants: 0x4a3b2f, hat: "beret", hatColor: 0xc0392b, prop: "book" },
+  "圖層":        { shirt: 0xecf0f1, pants: 0x2d3436, hat: "hair", hatColor: 0x111111, prop: "plates", tie: 0xc0392b },
+  "系統/授權":   { shirt: 0x2c3e50, pants: 0x1e272e, hat: "captain", hatColor: 0x1f2d3d, prop: "key" },
+  "圖面管理":    { shirt: 0xb5a06a, pants: 0x6b5b3e, hat: "wide", hatColor: 0xd8c48f, prop: "map" },
+  "剖面/結構":   { shirt: 0xff7f27, pants: 0x34495e, hat: "hardhat", hatColor: 0xf1c40f, prop: "beam" },
+  "出圖/列印":   { shirt: 0x95a5a6, pants: 0x2f3640, hat: "paper", hatColor: 0xffffff, prop: "roll" },
+  "轉檔/匯出入": { shirt: 0x8b5a2b, pants: 0x5d4037, hat: "cap", hatColor: 0x6d4c41, prop: "parcel" },
+  "對齊/排列":   { shirt: 0xffffff, pants: 0x1f3a5f, hat: "captain", hatColor: 0xffffff, prop: "flag", tie: 0x1f3a5f },
+  "查詢":        { shirt: 0x8d6e4f, pants: 0x4e3b2a, hat: "wide", hatColor: 0x6b5640, prop: "magnifier" },
+  "其他":        { shirt: 0x27ae60, pants: 0x6d4c41, hat: "straw", hatColor: 0xe9c46a, prop: "chest" },
+  "3D":          { shirt: 0x34495e, pants: 0x2c3e50, hat: "goggles", hatColor: 0x00cec9, prop: "cube" },
+};
+
+const matCache = new Map();
+function mat(color, extra = {}) {
+  const key = color + JSON.stringify(extra);
+  if (!matCache.has(key)) matCache.set(key, new THREE.MeshStandardMaterial({ color, roughness: 0.75, flatShading: true, ...extra }));
+  return matCache.get(key);
+}
+const box = (w, h, d, c) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c));
+const cyl = (rt, rb, h, c, seg = 8) => new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat(c));
+const sph = (r, c, ws = 10, hs = 8) => new THREE.Mesh(new THREE.SphereGeometry(r, ws, hs), mat(c));
+
+function makeProp(type) {
+  const g = new THREE.Group();
+  const add = (m, x = 0, y = 0, z = 0) => { m.position.set(x, y, z); g.add(m); return m; };
+  switch (type) {
+    case "brick": add(box(0.9, 0.45, 0.45, 0xc0392b)); break;
+    case "pencil": {
+      const b = add(cyl(0.13, 0.13, 1.6, 0xf1c40f, 6)); b.rotation.x = Math.PI / 2;
+      const tip = add(new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.35, 6), mat(0xf5cba7)), 0, 0, 0.97); tip.rotation.x = Math.PI / 2;
+      const er = add(cyl(0.13, 0.13, 0.2, 0xff8fa3, 6), 0, 0, -0.9); er.rotation.x = Math.PI / 2;
+      break;
+    }
+    case "ruler": add(box(0.18, 0.05, 1.8, 0xf7d046)); break;
+    case "calc": add(box(0.6, 0.12, 0.8, 0x2d3436)); add(box(0.45, 0.02, 0.22, 0x9be7c4), 0, 0.07, -0.22); break;
+    case "wrench": {
+      add(box(0.14, 0.1, 1.3, 0xb2bec3));
+      const head = add(new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.08, 6, 10, Math.PI * 1.5), mat(0xb2bec3)), 0, 0, 0.75);
+      head.rotation.x = Math.PI / 2;
+      break;
+    }
+    case "book": add(box(0.75, 0.22, 0.95, 0x1e6091)); add(box(0.7, 0.18, 0.9, 0xffffff), 0.04, 0, 0); break;
+    case "plates": [0xe74c3c, 0xf1c40f, 0x2ecc71, 0x3498db].forEach((c, i) => add(box(0.8, 0.07, 0.6, c), 0, i * 0.12, 0)); break;
+    case "key": {
+      const ring = add(new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.07, 6, 12), mat(0xf1c40f, { metalness: 0.4 })));
+      add(box(0.09, 0.09, 0.9, 0xf1c40f), 0, 0, 0.6); add(box(0.09, 0.22, 0.09, 0xf1c40f), 0, -0.1, 0.95);
+      ring.rotation.y = Math.PI / 2;
+      break;
+    }
+    case "map": { const m = add(box(1.2, 0.03, 0.85, 0xf3e5ab)); add(box(0.5, 0.035, 0.3, 0x7fb069), -0.2, 0.01, 0.1); add(box(0.3, 0.035, 0.25, 0x5dade2), 0.3, 0.01, -0.2); m.rotation.x = -0.5; break; }
+    case "beam": add(box(0.5, 0.08, 1.6, 0x7f8c8d), 0, 0.22, 0); add(box(0.5, 0.08, 1.6, 0x7f8c8d), 0, -0.22, 0); add(box(0.08, 0.44, 1.6, 0x7f8c8d)); break;
+    case "roll": { const r = add(cyl(0.18, 0.18, 1.2, 0xffffff, 10)); r.rotation.z = Math.PI / 2; add(box(0.9, 0.02, 0.6, 0xffffff), 0, -0.2, 0.35); break; }
+    case "parcel": add(box(0.8, 0.6, 0.7, 0xc49a6c)); add(box(0.82, 0.08, 0.15, 0xe1c699), 0, 0.27, 0); break;
+    case "flag": add(cyl(0.04, 0.04, 2.2, 0x8a5a33, 5), 0, 0.9, 0); add(box(0.04, 0.5, 0.75, 0xe74c3c), 0, 1.75, 0.38); break;
+    case "magnifier": {
+      const lens = add(new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.07, 6, 14), mat(0x4e342e)), 0, 0, 0.75);
+      add(new THREE.Mesh(new THREE.CircleGeometry(0.28, 14), mat(0xbfe9ff, { transparent: true, opacity: 0.55 })), 0, 0, 0.75).rotation.y = 0;
+      lens.rotation.y = 0;
+      add(box(0.1, 0.1, 0.6, 0x4e342e), 0, 0, 0.25);
+      break;
+    }
+    case "chest": add(box(0.8, 0.45, 0.55, 0x8d5524)); add(box(0.84, 0.18, 0.59, 0xb07d3a), 0, 0.3, 0); add(box(0.12, 0.14, 0.04, 0xf1c40f), 0, 0.18, 0.29); break;
+    case "cube": add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), mat(0x74d7f7, { transparent: true, opacity: 0.8, emissive: 0x0a6f8f }))).rotation.set(0.6, 0.6, 0); break;
+  }
+  return g;
+}
+
+function makeHat(type, color) {
+  const g = new THREE.Group();
+  const c = mat(color);
+  const add = (geo, y, m = c) => { const mesh = new THREE.Mesh(geo, m); mesh.position.y = y; g.add(mesh); return mesh; };
+  switch (type) {
+    case "cap": add(new THREE.SphereGeometry(0.64, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), 0.05); add(new THREE.BoxGeometry(0.7, 0.06, 0.55), 0.06).position.z = 0.65; break;
+    case "hardhat": add(new THREE.SphereGeometry(0.68, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), 0.05); add(new THREE.CylinderGeometry(0.85, 0.85, 0.07, 14), 0.06); add(new THREE.BoxGeometry(0.12, 0.08, 1.2), 0.62); break;
+    case "beret": { const b = add(new THREE.SphereGeometry(0.66, 10, 6), 0.28); b.scale.set(1.05, 0.38, 1.05); b.rotation.z = 0.25; add(new THREE.SphereGeometry(0.08, 6, 4), 0.55); break; }
+    case "hair": { const h = add(new THREE.SphereGeometry(0.65, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2.2), -0.02); h.rotation.x = -0.25; break; }
+    case "captain": add(new THREE.CylinderGeometry(0.66, 0.6, 0.35, 12), 0.2); add(new THREE.BoxGeometry(0.75, 0.05, 0.45), 0.05).position.z = 0.6;
+      add(new THREE.BoxGeometry(0.25, 0.15, 0.04), 0.22, mat(0xf1c40f)).position.z = 0.64; break;
+    case "wide": add(new THREE.CylinderGeometry(1.05, 1.05, 0.06, 16), 0.05); add(new THREE.CylinderGeometry(0.5, 0.58, 0.45, 12), 0.28); add(new THREE.CylinderGeometry(0.585, 0.585, 0.1, 12), 0.1, mat(0x3e2723)); break;
+    case "straw": add(new THREE.CylinderGeometry(1.15, 1.15, 0.05, 16), 0.05); add(new THREE.CylinderGeometry(0.48, 0.55, 0.32, 12), 0.22); add(new THREE.CylinderGeometry(0.56, 0.56, 0.09, 12), 0.1, mat(0xc0392b)); break;
+    case "paper": { const p = add(new THREE.ConeGeometry(0.7, 0.75, 4), 0.38); p.rotation.y = Math.PI / 4; p.scale.z = 0.45; break; }
+    case "goggles": {
+      add(new THREE.TorusGeometry(0.64, 0.06, 6, 20), -0.45, mat(0x2d3436)).rotation.x = Math.PI / 2;
+      const lens = add(new THREE.BoxGeometry(0.95, 0.3, 0.2), -0.48, mat(color, { emissive: 0x007f7d }));
+      lens.position.z = 0.58;
+      add(new THREE.SphereGeometry(0.6, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2.4), -0.02, mat(0xf5f6fa));
+      break;
+    }
+  }
+  return g;
+}
+
+function makePerson(cfg) {
+  const skin = 0xf5cba7;
+  const root = new THREE.Group();
+  const fig = new THREE.Group(); root.add(fig);
+  const legL = box(0.32, 0.95, 0.36, cfg.pants); legL.position.set(-0.2, 0.48, 0); fig.add(legL);
+  const legR = box(0.32, 0.95, 0.36, cfg.pants); legR.position.set(0.2, 0.48, 0); fig.add(legR);
+  const shoeL = box(0.34, 0.16, 0.48, 0x2d2d2d); shoeL.position.set(-0.2, 0.08, 0.06); fig.add(shoeL);
+  const shoeR = shoeL.clone(); shoeR.position.x = 0.2; fig.add(shoeR);
+  const body = cyl(0.5, 0.6, 1.3, cfg.shirt); body.position.y = 1.6; fig.add(body);
+  if (cfg.tie) { const tie = box(0.14, 0.7, 0.05, cfg.tie); tie.position.set(0, 1.75, 0.53); tie.rotation.x = -0.08; fig.add(tie); }
+  const head = sph(0.6, skin); head.position.y = 2.85; fig.add(head);
+  const eyeL = sph(0.075, 0x1e1e1e, 6, 4); eyeL.position.set(-0.2, 2.92, 0.54); fig.add(eyeL);
+  const eyeR = eyeL.clone(); eyeR.position.x = 0.2; fig.add(eyeR);
+  const mouth = sph(0.11, 0x8b1e1e, 8, 6); mouth.position.set(0, 2.66, 0.55); mouth.scale.set(1, 0.35, 0.5); fig.add(mouth);
+  const blushL = sph(0.09, 0xff9aa2, 6, 4); blushL.position.set(-0.36, 2.75, 0.45); blushL.scale.z = 0.4; fig.add(blushL);
+  const blushR = blushL.clone(); blushR.position.x = 0.36; fig.add(blushR);
+  if (cfg.glasses) {
+    for (const x of [-0.2, 0.2]) {
+      const g = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.03, 5, 12), mat(0x222222));
+      g.position.set(x, 2.92, 0.6); fig.add(g);
+    }
+  }
+  const hat = makeHat(cfg.hat, cfg.hatColor); hat.position.y = 3.15; fig.add(hat);
+
+  const arm = (side) => {
+    const pivot = new THREE.Group(); pivot.position.set(side * 0.62, 2.1, 0);
+    const a = cyl(0.13, 0.15, 1.0, cfg.shirt, 6); a.position.y = -0.5; pivot.add(a);
+    const hand = sph(0.16, skin, 6, 5); hand.position.y = -1.05; pivot.add(hand);
+    fig.add(pivot);
+    return pivot;
+  };
+  const armL = arm(-1), armR = arm(1);
+  const prop = makeProp(cfg.prop);
+  prop.position.set(0, -1.15, 0.1);
+  prop.rotation.x = 0.95;          // 抵銷手臂前伸角度，讓道具保持水平
+  armL.add(prop);
+  armL.rotation.x = -0.95;
+  return { root, fig, armL, armR, mouth };
+}
+
+function bubbleTexture(line) {
+  const c = document.createElement("canvas");
+  c.width = 640; c.height = 260;
+  const x = c.getContext("2d");
+  x.font = 'bold 54px "Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif';
+  const w = Math.min(620, Math.max(300, x.measureText(line).width + 70));
+  const left = (640 - w) / 2, top = 10, h = 190, r = 34;
+  x.beginPath();
+  x.moveTo(left + r, top); x.lineTo(left + w - r, top); x.quadraticCurveTo(left + w, top, left + w, top + r);
+  x.lineTo(left + w, top + h - r); x.quadraticCurveTo(left + w, top + h, left + w - r, top + h);
+  x.lineTo(338, top + h); x.lineTo(300, 252); x.lineTo(302, top + h);
+  x.lineTo(left + r, top + h); x.quadraticCurveTo(left, top + h, left, top + h - r);
+  x.lineTo(left, top + r); x.quadraticCurveTo(left, top, left + r, top); x.closePath();
+  x.fillStyle = "#fff"; x.fill();
+  x.lineWidth = 8; x.strokeStyle = "#e8743b"; x.stroke();
+  x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillStyle = "#e8743b"; x.font = 'bold 66px "Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif';
+  x.fillText("選我！", 320, top + 62);
+  x.fillStyle = "#0f2233"; x.font = 'bold 50px "Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif';
+  x.fillText(line, 320, top + 140);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;
 }
 
@@ -260,22 +425,35 @@ function create3D() {
     // 標籤與搜尋數字
     const labelW = Math.max(r * 2.3, 19);
     const label = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: labelTexture(App.emoji[c.name] || "🏝️", c.name, `${c.items.length} 支`), depthTest: false, transparent: true,
+      map: labelTexture(App.emoji[c.name] || "🏝️", c.name, `${c.items.length} 支`), depthTest: false, transparent: true, toneMapped: false,
     }));
     label.scale.set(labelW, labelW * 300 / 512, 1);
     label.position.y = top + 3.5 + labelW * 0.3;
     label.renderOrder = 10;
     body.add(label);
-    const badge = new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: false, transparent: true }));
+    const badge = new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: false, transparent: true, toneMapped: false }));
     badge.scale.setScalar(5);
     badge.position.set(labelW * 0.42, label.position.y + labelW * 0.2, 0);
     badge.renderOrder = 11; badge.visible = false;
     body.add(badge);
 
+    // 代表人物與「選我！」對話框
+    const person = makePerson(CHARS[c.name] || CHARS["其他"]);
+    person.root.position.y = top;
+    const charScale = 1.6 + r * 0.05;
+    person.root.scale.setScalar(charScale);
+    body.add(person.root);
+    const bubble = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: bubbleTexture((App.shout && App.shout[c.name]) || "我最好用"), depthTest: false, transparent: true, opacity: 0, toneMapped: false,
+    }));
+    bubble.renderOrder = 12; bubble.visible = false;
+    body.add(bubble);
+
     root.userData.cat = c.name;
     scene.add(root);
     pickables.push(root);
     islands.push({
+      person, bubble, charScale, pop: 0, shoutUntil: 0,
       c, root, body, ring, label, badge, landMat, r, wx, wz, seed, labelW,
       lift: 0, liftTo: 0, sink: 0, sinkTo: 0, op: 1, opTo: 1, badgeN: -1,
     });
@@ -421,12 +599,14 @@ function create3D() {
 
   // ---------- 動畫 ----------
   const clock = new THREE.Clock();
-  let running = true;
+  const top3d = 1.3;
+  let running = true, nextShout = performance.now() + 800;
   function frame() {
     if (!running) return;
     requestAnimationFrame(frame);
     const dt = Math.min(clock.getDelta(), 0.05);
     const t = clock.elapsedTime;
+    const now = performance.now();
     waterMat.uniforms.uTime.value = REDUCED ? t * 0.3 : t;
 
     // 鏡頭飛行
@@ -466,6 +646,46 @@ function create3D() {
       isl.label.scale.set(isl.labelW * ls, isl.labelW * ls * 300 / 512, 1);
       const isActive = active === isl.c.name;
       isl.ring.material.opacity += ((isActive ? 0.55 + Math.sin(t * 3) * 0.25 : 0) - isl.ring.material.opacity) * 0.15;
+
+      // 人物站在島上朝向鏡頭的右前方
+      let dx = camera.position.x - isl.wx, dz = camera.position.z - isl.wz;
+      const len = Math.hypot(dx, dz) || 1; dx /= len; dz /= len;
+      const rx = dz, rz = -dx;               // 鏡頭看過去的右方
+      const P = isl.person;
+      P.root.position.x = rx * isl.r * 0.58 + dx * isl.r * 0.22;
+      P.root.position.z = rz * isl.r * 0.58 + dz * isl.r * 0.22;
+      P.root.rotation.y = Math.atan2(dx, dz) - 0.25;
+
+      const shouting = (now < isl.shoutUntil && !isl.c.dim) || hovered === isl || (isActive && !REDUCED);
+      isl.pop += ((shouting ? 1 : 0) - isl.pop) * 0.14;
+      if (shouting && !REDUCED) {
+        P.fig.position.y = Math.abs(Math.sin(t * 7 + isl.seed)) * 0.55;
+        P.armR.rotation.z = 2.5 + Math.sin(t * 14 + isl.seed) * 0.45;
+        P.mouth.scale.y = 0.35 + Math.abs(Math.sin(t * 11)) * 0.9;
+      } else {
+        P.fig.position.y *= 0.8;
+        P.armR.rotation.z += (0.12 + Math.sin(t * 1.5 + isl.seed) * 0.05 - P.armR.rotation.z) * 0.15;
+        P.mouth.scale.y = shouting ? 1 : 0.35;
+      }
+      const B = isl.bubble;
+      B.visible = isl.pop > 0.02;
+      if (B.visible) {
+        const full = THREE.MathUtils.clamp(dist * 0.2, 15, 44), bw = full * (0.55 + 0.45 * isl.pop);
+        B.scale.set(bw, bw * 260 / 640, 1);
+        B.material.opacity = Math.min(1, isl.pop * 1.3);
+        const off = full * 0.36;
+        B.position.set(P.root.position.x + rx * off, top3d + 4.3 * isl.charScale + full * 0.2 + 0.6, P.root.position.z + rz * off);
+      }
+    }
+    // 輪流喊「選我！」：首頁最多 3 位同時喊；進入某座島時只有該島的人喊
+    if (!REDUCED && now > nextShout) {
+      nextShout = now + 1600;
+      const busy = islands.filter((s) => now < s.shoutUntil).length;
+      if (!active && busy < 3) {
+        const pool = islands.filter((s) => !s.c.dim && now >= s.shoutUntil);
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        if (pick) pick.shoutUntil = now + 3400;
+      }
     }
     for (const cl of clouds) {
       const u = cl.userData;
