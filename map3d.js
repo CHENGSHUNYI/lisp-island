@@ -7,6 +7,8 @@ const App = window.LispApp;
 const wrap = document.querySelector(".map-wrap");
 const viewBtn = document.querySelector("#viewBtn");
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+// 截圖用：網址加 ?shout=繪圖,標註 可讓指定島的人物一直喊
+const FORCE_SHOUT = new Set((new URLSearchParams(location.search).get("shout") || "").split(",").filter(Boolean));
 const LAND = [0x6dbb63, 0x79c46a, 0x5fae5f, 0x82c26b, 0x68b870, 0x74bd5c];
 const SKY_TOP = new THREE.Color(0x5fb4dc), SKY_HORIZON = new THREE.Color(0xcdeaf3);
 
@@ -656,8 +658,9 @@ function create3D() {
       P.root.position.z = rz * isl.r * 0.58 + dz * isl.r * 0.22;
       P.root.rotation.y = Math.atan2(dx, dz) - 0.25;
 
-      const shouting = (now < isl.shoutUntil && !isl.c.dim) || hovered === isl || (isActive && !REDUCED);
-      isl.pop += ((shouting ? 1 : 0) - isl.pop) * 0.14;
+      const forced = FORCE_SHOUT.has(isl.c.name);
+      const shouting = forced || (now < isl.shoutUntil && !isl.c.dim) || hovered === isl || (isActive && !REDUCED);
+      isl.pop = forced ? 1 : isl.pop + ((shouting ? 1 : 0) - isl.pop) * 0.14;
       if (shouting && !REDUCED) {
         P.fig.position.y = Math.abs(Math.sin(t * 7 + isl.seed)) * 0.55;
         P.armR.rotation.z = 2.5 + Math.sin(t * 14 + isl.seed) * 0.45;
@@ -678,7 +681,7 @@ function create3D() {
       }
     }
     // 輪流喊「選我！」：首頁最多 3 位同時喊；進入某座島時只有該島的人喊
-    if (!REDUCED && now > nextShout) {
+    if (!REDUCED && !FORCE_SHOUT.size && now > nextShout) {
       nextShout = now + 1600;
       const busy = islands.filter((s) => now < s.shoutUntil).length;
       if (!active && busy < 3) {
