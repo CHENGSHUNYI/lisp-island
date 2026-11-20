@@ -98,6 +98,48 @@
     return e;
   };
 
+  // ---------- 情境主題 ----------
+  const THEMES = window.LISP_THEMES || { order: ["ghibli"], themes: { ghibli: { label: "手繪群島", emoji: "🏝️", place: "島", ui: {}, hosts: null } } };
+  const qsTheme = new URLSearchParams(location.search).get("theme");
+  let theme = [qsTheme, localStorage.getItem("lispTheme")].find((x) => x && THEMES.themes[x]) || "ghibli";
+  const hostOf = (cat) => (THEMES.themes[theme].hosts || {})[cat] || null;
+  function drawBubble2D(c) {
+    while (c.bubble.firstChild) c.bubble.firstChild.remove();
+    const host = hostOf(c.name);
+    const head = host ? host.sound + "選我！" : "選我！";
+    const line = SHOUT[c.name] || "";
+    const bw = Math.max(130, line.length * 19 + 34, head.length * 23 + 34), bh = 68;
+    const bx = c.px - 18, by = c.py - c.ps - bh - 6;
+    el("path", {
+      d: `M${bx + 14},${by} h${bw - 28} q14,0 14,14 v${bh - 28} q0,14 -14,14 h${-(bw - 60)} l-14,14 l2,-14 h-20 q-14,0 -14,-14 v${-(bh - 28)} q0,-14 14,-14z`,
+    }, c.bubble);
+    el("text", { x: bx + 14, y: by + 28, class: "b1" }, c.bubble).textContent = head;
+    el("text", { x: bx + 14, y: by + 54, class: "b2" }, c.bubble).textContent = line;
+    c.person.textContent = host ? host.emoji : (PERSON[c.name] || "🧑");
+  }
+  function applyThemeUI() {
+    const T = THEMES.themes[theme];
+    document.body.dataset.theme = theme;
+    const ui = T.ui || {};
+    const root = document.documentElement.style;
+    if (ui.accent) root.setProperty("--accent", ui.accent);
+    if (ui.leaf) root.setProperty("--leaf", ui.leaf);
+    if (ui.bar) root.setProperty("--bar", ui.bar);
+    if (ui.line) root.setProperty("--line", ui.line);
+    const sel = $("#themeSel");
+    if (sel) sel.value = theme;
+    document.title = `鄭霸的LISP分類島導覽${theme === "ghibli" ? "" : "・" + T.label}`;
+  }
+  function setTheme(id) {
+    if (!THEMES.themes[id] || id === theme) return;
+    theme = id;
+    localStorage.setItem("lispTheme", id);
+    applyThemeUI();
+    catList.forEach(drawBubble2D);
+    render();
+    if (window.LispApp.onTheme) window.LispApp.onTheme(id);
+  }
+
   const bubbleLayer = el("g", { id: "bubbles" });
   function drawIslands() {
     svg.appendChild(bubbleLayer);
@@ -129,15 +171,9 @@
       const px = c.x + c.r * 0.62, py = c.y + c.r * 0.28, ps = Math.max(30, c.r * 0.34);
       c.person = el("text", { class: "person", x: px, y: py, "font-size": ps }, body);
       c.person.textContent = PERSON[c.name] || "🧑";
-      const line = SHOUT[c.name] || "";
-      const bw = Math.max(130, line.length * 19 + 34), bh = 68;
-      const bx = px - 18, by = py - ps - bh - 6;
+      c.px = px; c.py = py; c.ps = ps;
       c.bubble = el("g", { class: "bubble" }, bubbleLayer);
-      el("path", {
-        d: `M${bx + 14},${by} h${bw - 28} q14,0 14,14 v${bh - 28} q0,14 -14,14 h${-(bw - 60)} l-14,14 l2,-14 h-20 q-14,0 -14,-14 v${-(bh - 28)} q0,-14 14,-14z`,
-      }, c.bubble);
-      const t1 = el("text", { x: bx + 14, y: by + 28, class: "b1" }, c.bubble); t1.textContent = "選我！";
-      const t2 = el("text", { x: bx + 14, y: by + 54, class: "b2" }, c.bubble); t2.textContent = line;
+      drawBubble2D(c);
       g.addEventListener("mouseenter", () => c.bubble.classList.add("hover"));
       g.addEventListener("mouseleave", () => c.bubble.classList.remove("hover"));
 
@@ -218,7 +254,9 @@
     if (!open) return;
 
     state.list = filtered();
-    const title = state.cat ? `${EMOJI[state.cat] || "🏝️"} ${state.cat}島` : "🔍 全島搜尋";
+    const place = THEMES.themes[theme].place || "島";
+    const host = state.cat ? hostOf(state.cat) : null;
+    const title = state.cat ? `${EMOJI[state.cat] || "🏝️"} ${state.cat}${place}${host ? "・" + host.emoji + host.name : ""}` : "🔍 全島搜尋";
     $("#panelTitle").textContent = title;
     const total = state.cat ? cats[state.cat].length : ITEMS.length;
     let sub = `${state.list.length} / ${total} 支指令`;
@@ -355,8 +393,10 @@
   }
 
   window.LispApp = {
-    catList, emoji: EMOJI, shout: SHOUT, openCat,
+    catList, emoji: EMOJI, shout: SHOUT, openCat, setTheme,
     get state() { return state; },
+    get theme() { return theme; },
+    onTheme: null,
     use3D(v) {
       view3d = v;
       svg.style.display = v ? "none" : "";
@@ -368,6 +408,12 @@
   };
 
   // ---------- 啟動 ----------
+  const sel = $("#themeSel");
+  if (sel) {
+    sel.innerHTML = THEMES.order.map((k) => `<option value="${k}">${THEMES.themes[k].emoji} ${THEMES.themes[k].label}</option>`).join("");
+    sel.addEventListener("change", () => setTheme(sel.value));
+  }
+  applyThemeUI();
   drawIslands();
   const id = readHash();
   render();

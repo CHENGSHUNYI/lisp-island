@@ -16,8 +16,8 @@ body { display: flex; flex-direction: column; overflow: hidden; }
 
 .topbar {
   display: flex; align-items: center; gap: 16px; padding: 10px 18px;
-  background: rgba(253, 248, 236, .94); color: var(--ink); backdrop-filter: blur(6px);
-  border-bottom: 3px solid #e8dcc4; box-shadow: 0 2px 12px rgba(59,51,38,.12);
+  background: var(--bar, #fdf8ec); color: var(--ink); backdrop-filter: blur(6px);
+  border-bottom: 3px solid var(--line); box-shadow: 0 2px 12px rgba(59,51,38,.12);
   z-index: 5; flex-wrap: wrap;
 }
 .brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
@@ -43,6 +43,10 @@ main { flex: 1; position: relative; min-height: 0; }
 #map3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 #map3d.hover { cursor: pointer; }
 #viewBtn { min-width: 52px; }
+#themeSel { appearance: none; -webkit-appearance: none; padding-right: 30px; cursor: pointer; font: inherit; font-weight: 700;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%237a6c58' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 11px center;
+  border-color: var(--line); color: var(--ink); }
+#themeSel:hover, #themeSel:focus { border-color: var(--leaf); outline: none; }
 .hint {
   position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0;
   color: var(--ink); background: rgba(253, 248, 236, .88); border: 2px solid #e8dcc4; padding: 5px 14px; border-radius: 999px; font-size: 13px;
@@ -141,7 +145,8 @@ dialog h2 { margin: 0 40px 4px 0; font-family: Consolas, "Cascadia Mono", monosp
   .brand p { display: none; }
   .logo { font-size: 24px; }
   .ghost { padding: 5px 10px; font-size: 13px; }
-  #viewBtn { min-width: 40px; margin-left: auto; }
+  #themeSel { margin-left: auto; max-width: 150px; padding-right: 26px; }
+  #viewBtn { min-width: 40px; }
   .search { order: 3; min-width: 100%; }
   .search kbd { display: none; }
   .panel { top: auto; height: 72%; width: 100%; border-radius: 18px 18px 0 0; transform: translateY(105%); }
