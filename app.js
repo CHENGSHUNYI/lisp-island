@@ -434,8 +434,16 @@
       if (k === "sfx") inp.addEventListener("change", () => A.sfx("pop"));
     });
     muteBtn.addEventListener("click", () => A.toggle());
+    // 面板 3 秒沒有操作就自動隱藏（滑鼠停在面板上或正在拖滑桿時不隱藏）
+    let hideTimer = null, hovering = false;
+    const armHide = () => { clearTimeout(hideTimer); if (!soundPanel.hidden && !hovering) hideTimer = setTimeout(() => openPanel(false), 3000); };
+    soundPanel.addEventListener("pointerenter", () => { hovering = true; clearTimeout(hideTimer); });
+    soundPanel.addEventListener("pointerleave", () => { hovering = false; armHide(); });
+    ["input", "change", "pointerdown", "focusin", "keydown"].forEach((ev) => soundPanel.addEventListener(ev, armHide));
     const openPanel = (open) => {
+      clearTimeout(hideTimer);
       soundPanel.hidden = !open;
+      if (open) { hovering = false; armHide(); }
       soundPanel.style.top = open && innerWidth <= 760 ? soundBtn.getBoundingClientRect().bottom + 10 + "px" : "";
       soundBtn.setAttribute("aria-expanded", String(open));
     };

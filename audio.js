@@ -4,7 +4,7 @@ window.LispAudio = (() => {
   const KEY = "lispSound";
   let enabled = localStorage.getItem(KEY) !== "off";
   // 音量（0–100），存在瀏覽器
-  const vol = { music: 70, sfx: 80 };
+  const vol = { music: 50, sfx: 80 };
   try { Object.assign(vol, JSON.parse(localStorage.getItem("lispVolume") || "{}")); } catch {}
   const musicGain = () => 0.62 * Math.pow(vol.music / 100, 2);
   const sfxGain = () => 1.1 * Math.pow(vol.sfx / 100, 2);
