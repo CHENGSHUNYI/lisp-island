@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>鄭霸的LISP分類島導覽</title>
 <meta name="description" content="鄭霸的LISP分類島導覽：依分類瀏覽、搜尋近兩千支 LISP 指令，查看說明、操作方式並下載 .fas。">
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 <header class="topbar">
@@ -21,6 +21,7 @@
     <input id="q" type="search" placeholder="搜尋指令、檔名、功能說明…" autocomplete="off">
     <kbd>/</kbd>
   </div>
+  <button class="ghost" id="soundBtn" hidden aria-label="音樂與音效">🔊</button>
   <select id="themeSel" class="ghost" aria-label="切換情境" title="切換情境"></select>
   <button class="ghost" id="viewBtn" hidden title="切換 2D / 3D 地圖">2D</button>
   <button class="ghost" id="legendBtn">判定標準</button>
@@ -102,14 +103,15 @@
 </dialog>
 
 <script src="data.js"></script>
-<script src="themes.js?v=6"></script>
-<script src="app.js?v=6"></script>
+<script src="audio.js?v=8"></script>
+<script src="themes.js?v=7"></script>
+<script src="app.js?v=7"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
 } }
 </script>
-<script type="module" src="map3d.js?v=6"></script>
+<script type="module" src="map3d.js?v=7"></script>
 </body>
 </html>

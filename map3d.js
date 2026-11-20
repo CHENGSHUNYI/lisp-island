@@ -2,7 +2,7 @@
 // 不支援 WebGL 或載入失敗時，網頁會自動保留 2D 地圖。
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { buildAnimal, animateAnimal, walkLegs, faceForward } from "./animals.js?v=6";
+import { buildAnimal, animateAnimal, walkLegs, faceForward } from "./animals.js?v=7";
 
 const App = window.LispApp;
 const wrap = document.querySelector(".map-wrap");
@@ -1262,6 +1262,7 @@ function create3D(themeId = "ghibli") {
     const isl = pick(ev);
     if (isl !== hovered) {
       hovered = isl;
+      if (isl && window.LispAudio) window.LispAudio.sfx("call");
       canvas.classList.toggle("hover", !!isl);
       canvas.title = isl ? `${isl.c.name}（${isl.c.items.length} 支）` : "";
     }

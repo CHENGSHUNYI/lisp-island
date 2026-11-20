@@ -38,6 +38,7 @@
   const fLevel = $("#fLevel"), fLt = $("#fLt"), fSort = $("#fSort"), fFas = $("#fFas");
 
   const state = { cat: "", q: "", shown: PAGE, list: [] };
+  const snd = (n) => { if (window.LispAudio) window.LispAudio.sfx(n); };
 
   // ---------- 分類 ----------
   const cats = {};
@@ -137,6 +138,7 @@
     applyThemeUI();
     catList.forEach(drawBubble2D);
     render();
+    if (window.LispAudio) window.LispAudio.setTheme(id);
     if (window.LispApp.onTheme) window.LispApp.onTheme(id);
   }
 
@@ -283,11 +285,13 @@
 
   function openCat(name) {
     state.cat = state.cat === name ? "" : name;
+    snd(state.cat ? "open" : "close");
     state.shown = PAGE;
     cardsEl.scrollTop = 0;
     render(); moveCamera(); syncHash();
   }
   function goHome() {
+    if (state.cat || state.q) snd("close");
     state.cat = ""; state.q = ""; qEl.value = ""; state.shown = PAGE;
     render(); moveCamera(); syncHash();
   }
@@ -297,6 +301,7 @@
   for (const c of DATA.criteria) crit[c.item + "|" + c.level] = c.text;
 
   function showDetail(no) {
+    snd("pop");
     const it = ITEMS.find((x) => String(x.no) === String(no));
     if (!it) return;
     const lvText = crit["程式難易度|" + it.level] || "";
@@ -372,7 +377,7 @@
   $("#legendBtn").addEventListener("click", showLegend);
   document.querySelectorAll("dialog").forEach((d) => {
     d.addEventListener("click", (e) => { if (e.target === d || e.target.closest("[data-close]")) d.close(); });
-    d.addEventListener("close", () => { if (d.id === "detail") syncHash(); });
+    d.addEventListener("close", () => { if (d.id === "detail") syncHash(); snd("click"); });
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "/" && document.activeElement !== qEl && !document.querySelector("dialog[open]")) { e.preventDefault(); qEl.focus(); }
@@ -408,6 +413,19 @@
   };
 
   // ---------- 啟動 ----------
+  // ---------- 聲音 ----------
+  const soundBtn = $("#soundBtn");
+  if (window.LispAudio && soundBtn) {
+    const paint = (on) => { soundBtn.textContent = on ? "🔊" : "🔇"; soundBtn.title = on ? "關閉音樂與音效" : "開啟音樂與音效"; soundBtn.setAttribute("aria-pressed", String(on)); };
+    paint(LispAudio.enabled);
+    LispAudio.onChange(paint);
+    LispAudio.setTheme(theme);
+    soundBtn.addEventListener("click", () => LispAudio.toggle());
+    soundBtn.hidden = false;
+  }
+  $("#detailBody").addEventListener("click", (e) => { if (e.target.closest("a[download]")) snd("coin"); });
+  ["#viewBtn", "#legendBtn", "#more"].forEach((q) => $(q).addEventListener("click", () => snd("click")));
+
   const sel = $("#themeSel");
   if (sel) {
     sel.innerHTML = THEMES.order.map((k) => `<option value="${k}">${THEMES.themes[k].emoji} ${THEMES.themes[k].label}</option>`).join("");
