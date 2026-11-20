@@ -43,6 +43,23 @@ main { flex: 1; position: relative; min-height: 0; }
 #map3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 #map3d.hover { cursor: pointer; }
 #viewBtn { min-width: 52px; }
+.sound-wrap { position: relative; }
+#soundPanel { position: absolute; top: calc(100% + 10px); right: 0; z-index: 20; width: 260px; padding: 14px 16px 12px;
+  background: var(--paper); border: 2px solid var(--line); border-radius: 16px; box-shadow: 0 12px 28px rgba(59,51,38,.22);
+  display: grid; gap: 10px; color: var(--ink); }
+#soundPanel::before { content: ""; position: absolute; top: -8px; right: 16px; width: 12px; height: 12px; background: var(--paper);
+  border-left: 2px solid var(--line); border-top: 2px solid var(--line); transform: rotate(45deg); }
+#soundPanel label { display: grid; grid-template-columns: 64px 1fr 42px; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+#soundPanel b { font-size: 13px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+#soundPanel input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; border-radius: 999px; cursor: pointer;
+  background: linear-gradient(90deg, var(--leaf) var(--p, 50%), #e6dccb var(--p, 50%)); }
+#soundPanel input[type=range]:disabled { opacity: .45; cursor: default; }
+#soundPanel input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; border: 3px solid var(--leaf); box-shadow: 0 2px 4px rgba(0,0,0,.2); }
+#soundPanel input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 3px solid var(--leaf); }
+#muteBtn { margin-top: 2px; padding: 7px 10px; border-radius: 10px; border: 2px solid var(--line); background: #fff; color: var(--ink); font-weight: 700; }
+#muteBtn:hover { border-color: var(--accent); color: var(--accent); }
+#muteBtn.off { background: var(--leaf); border-color: var(--leaf); color: #fff; }
 #soundBtn { min-width: 44px; padding-left: 10px; padding-right: 10px; font-size: 17px; line-height: 1; }
 #themeSel { appearance: none; -webkit-appearance: none; padding-right: 30px; cursor: pointer; font: inherit; font-weight: 700;
   background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%237a6c58' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 11px center;
@@ -146,6 +163,8 @@ dialog h2 { margin: 0 40px 4px 0; font-family: Consolas, "Cascadia Mono", monosp
   .brand p { display: none; }
   .logo { font-size: 24px; }
   .ghost { padding: 5px 10px; font-size: 13px; }
+  #soundPanel { position: fixed; left: 12px; right: 12px; width: auto; }
+  #soundPanel::before { display: none; }
   #themeSel { margin-left: auto; max-width: 150px; padding-right: 26px; }
   #viewBtn { min-width: 40px; }
   .search { order: 3; min-width: 100%; }

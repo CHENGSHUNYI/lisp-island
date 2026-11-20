@@ -3,6 +3,11 @@
 window.LispAudio = (() => {
   const KEY = "lispSound";
   let enabled = localStorage.getItem(KEY) !== "off";
+  // 音量（0–100），存在瀏覽器
+  const vol = { music: 70, sfx: 80 };
+  try { Object.assign(vol, JSON.parse(localStorage.getItem("lispVolume") || "{}")); } catch {}
+  const musicGain = () => 0.62 * Math.pow(vol.music / 100, 2);
+  const sfxGain = () => 1.1 * Math.pow(vol.sfx / 100, 2);
   let ctx = null, master, musicBus, sfxBus, ambBus, noiseBuf;
   let theme = "ghibli", timer = null, step = 0, nextTime = 0, song = null, ambient = [];
   const listeners = [];
@@ -205,9 +210,9 @@ window.LispAudio = (() => {
       ctx = new AC();
       const comp = ctx.createDynamicsCompressor();
       master = ctx.createGain(); master.gain.value = 0.9;
-      musicBus = ctx.createGain(); musicBus.gain.value = 0.32;
-      sfxBus = ctx.createGain(); sfxBus.gain.value = 0.7;
-      ambBus = ctx.createGain(); ambBus.gain.value = 0.8;
+      musicBus = ctx.createGain(); musicBus.gain.value = musicGain();
+      sfxBus = ctx.createGain(); sfxBus.gain.value = sfxGain();
+      ambBus = ctx.createGain(); ambBus.gain.value = 2.5 * musicGain();
       musicBus.connect(master); sfxBus.connect(master); ambBus.connect(master);
       master.connect(comp); comp.connect(ctx.destination);
       noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
@@ -251,6 +256,18 @@ window.LispAudio = (() => {
   return {
     get enabled() { return enabled; },
     get state() { return ctx ? ctx.state : "idle"; },
+    get volume() { return { ...vol }; },
+    setVolume(kind, v) {
+      if (!(kind in vol)) return;
+      vol[kind] = Math.max(0, Math.min(100, Math.round(v)));
+      localStorage.setItem("lispVolume", JSON.stringify(vol));
+      if (ctx) {
+        const t = ctx.currentTime;
+        musicBus.gain.setTargetAtTime(musicGain(), t, 0.05);
+        ambBus.gain.setTargetAtTime(2.5 * musicGain(), t, 0.05);
+        sfxBus.gain.setTargetAtTime(sfxGain(), t, 0.02);
+      }
+    },
     toggle() { setEnabled(!enabled); if (enabled) sfx("pop"); },
     setTheme(id) { theme = SONGS[id] ? id : "ghibli"; if (ctx && enabled) { playTheme(theme); sfx("switch"); } },
     sfx,

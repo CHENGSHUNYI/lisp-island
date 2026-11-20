@@ -414,13 +414,34 @@
 
   // ---------- 啟動 ----------
   // ---------- 聲音 ----------
-  const soundBtn = $("#soundBtn");
+  const soundBtn = $("#soundBtn"), soundPanel = $("#soundPanel");
   if (window.LispAudio && soundBtn) {
-    const paint = (on) => { soundBtn.textContent = on ? "🔊" : "🔇"; soundBtn.title = on ? "關閉音樂與音效" : "開啟音樂與音效"; soundBtn.setAttribute("aria-pressed", String(on)); };
-    paint(LispAudio.enabled);
-    LispAudio.onChange(paint);
-    LispAudio.setTheme(theme);
-    soundBtn.addEventListener("click", () => LispAudio.toggle());
+    const A = window.LispAudio, muteBtn = $("#muteBtn");
+    const sliders = [["music", $("#volMusic"), $("#volMusicV")], ["sfx", $("#volSfx"), $("#volSfxV")]];
+    const paint = () => {
+      const on = A.enabled, v = A.volume;
+      soundBtn.textContent = !on || (v.music === 0 && v.sfx === 0) ? "🔇" : v.music < 35 ? "🔉" : "🔊";
+      soundBtn.title = "音樂與音效音量";
+      muteBtn.textContent = on ? "🔇 全部靜音" : "🔊 開啟聲音";
+      muteBtn.classList.toggle("off", !on);
+      sliders.forEach(([k, inp, out]) => { inp.value = v[k]; out.textContent = v[k] + "%"; inp.disabled = !on; inp.style.setProperty("--p", v[k] + "%"); });
+    };
+    paint();
+    A.onChange(paint);
+    A.setTheme(theme);
+    sliders.forEach(([k, inp, out]) => {
+      inp.addEventListener("input", () => { A.setVolume(k, +inp.value); paint(); });
+      if (k === "sfx") inp.addEventListener("change", () => A.sfx("pop"));
+    });
+    muteBtn.addEventListener("click", () => A.toggle());
+    const openPanel = (open) => {
+      soundPanel.hidden = !open;
+      soundPanel.style.top = open && innerWidth <= 760 ? soundBtn.getBoundingClientRect().bottom + 10 + "px" : "";
+      soundBtn.setAttribute("aria-expanded", String(open));
+    };
+    soundBtn.addEventListener("click", (e) => { e.stopPropagation(); openPanel(soundPanel.hidden); });
+    document.addEventListener("pointerdown", (e) => { if (!soundPanel.hidden && !e.target.closest(".sound-wrap")) openPanel(false); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !soundPanel.hidden) { openPanel(false); soundBtn.focus(); } });
     soundBtn.hidden = false;
   }
   $("#detailBody").addEventListener("click", (e) => { if (e.target.closest("a[download]")) snd("coin"); });
