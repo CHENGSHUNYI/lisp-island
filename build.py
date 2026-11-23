@@ -4,8 +4,8 @@
     python build.py
 預設讀取上一層的 LSP功能說明清單.xlsx 與 .fas 檔。
 
-影片連結：在 Excel「功能說明清單」工作表新增一欄，標題為「影片網址」，
-填入 YouTube 網址後重新執行本程式即可。
+影片連結：在同一個資料夾的 videos.csv 加一行「檔名,影片網址」後重新執行本程式；
+也可以在 Excel「功能說明清單」工作表新增「影片網址」欄（Excel 有填的優先）。
 """
 import json
 import os
@@ -40,6 +40,20 @@ FIELD_KEYS = {
 }
 
 
+def load_videos():
+    """讀取 videos.csv：檔名 → 影片網址"""
+    import csv
+    path = os.path.join(HERE, "videos.csv")
+    out = {}
+    if os.path.exists(path):
+        with open(path, encoding="utf-8-sig", newline="") as f:
+            for row in csv.DictReader(f):
+                name, url = (row.get("檔名") or "").strip(), (row.get("影片網址") or "").strip()
+                if name and url.startswith("http"):
+                    out[name.lower()] = url
+    return out
+
+
 def find_fas(src_dir):
     found = {}
     for root, dirs, files in os.walk(src_dir):
@@ -62,6 +76,7 @@ def main():
         shutil.rmtree(FAS_OUT)
     os.makedirs(FAS_OUT)
 
+    videos = load_videos()
     items, copied, missing = [], 0, []
     for row in ws.iter_rows(min_row=2, values_only=True):
         rec = dict(zip(header, row))
@@ -73,6 +88,8 @@ def main():
                 continue
             v = rec.get(col)
             item[key] = "" if v is None else (v if isinstance(v, int) else str(v).strip())
+        if not item.get("video"):
+            item["video"] = videos.get(item["file"].lower(), "")
         stem = os.path.splitext(item["file"])[0]
         src = fas.get(stem.lower())
         item["fas"] = ""

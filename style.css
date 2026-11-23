@@ -175,3 +175,15 @@ dialog h2 { margin: 0 40px 4px 0; font-family: Consolas, "Cascadia Mono", monosp
   .dl-grid { grid-template-columns: 1fr; gap: 2px; }
   .dl-grid dd { margin-bottom: 8px; }
 }
+
+/* 教學影片播放器 */
+.player { position: relative; margin: 14px 0 4px; border-radius: 14px; overflow: hidden; aspect-ratio: 16 / 9; background: #1f1a14;
+  border: 2px solid var(--line); }
+.player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.player .facade { position: absolute; inset: 0; padding: 0; border: 0; cursor: pointer; background: #1f1a14; display: block; width: 100%; }
+.player .facade img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s, filter .3s; }
+.player .facade:hover img { transform: scale(1.03); filter: brightness(.85); }
+.player .play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 74px; height: 52px; border-radius: 14px;
+  background: #e02424; color: #fff; font-size: 24px; display: grid; place-items: center; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.player .hint-play { position: absolute; left: 12px; bottom: 10px; color: #fff; font-size: 13px; font-weight: 700;
+  background: rgba(0,0,0,.55); padding: 3px 10px; border-radius: 999px; }

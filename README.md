@@ -22,4 +22,5 @@ python build.py
 這會重新產生 `data.js` 和 `fas/` 資料夾，然後 commit 並 push。
 修改 `app.js`、`map3d.js` 或 `style.css` 後，請把 `index.html` 裡的 `?v=` 數字加一，讓訪客的瀏覽器載入新版。
 
-要加教學影片：在 Excel「功能說明清單」工作表新增一欄 **影片網址**，填入 YouTube 網址後重新執行 `build.py`。
+要加教學影片：在 `videos.csv` 加一行「檔名,影片網址」（例如 `MAP-NX.lsp,https://youtu.be/xxxxxxxxxxx`），重新執行 `build.py`。
+指令說明視窗會直接嵌入 YouTube 播放器；播放時背景音樂會自動靜音。也可以在 Excel 新增「影片網址」欄，Excel 有填的優先。

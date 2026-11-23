@@ -35,7 +35,7 @@
   const $ = (s) => document.querySelector(s);
   const svg = $("#map"), gIslands = $("#islands"), panel = $("#panel"), cardsEl = $("#cards");
   const qEl = $("#q"), moreBtn = $("#more");
-  const fLevel = $("#fLevel"), fLt = $("#fLt"), fSort = $("#fSort"), fFas = $("#fFas");
+  const fLevel = $("#fLevel"), fLt = $("#fLt"), fSort = $("#fSort"), fFas = $("#fFas"), fVid = $("#fVid");
 
   const state = { cat: "", q: "", shown: PAGE, list: [] };
   const snd = (n) => { if (window.LispAudio) window.LispAudio.sfx(n); };
@@ -71,6 +71,8 @@
     return `<span class="lvl" title="難易度 ${n}/9">${"●".repeat(n)}<i>${"●".repeat(Math.max(0, 9 - n))}</i></span>`;
   };
   const safeUrl = (u) => /^https?:\/\//i.test(u || "") ? u : "";
+  // 從 YouTube 網址取出影片編號
+  const ytId = (u) => { const m = String(u || "").match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/)([\w-]{11})/); return m ? m[1] : ""; };
   const fasHref = (p) => p.split("/").map(encodeURIComponent).join("/");
 
   // ---------- 島嶼繪製 ----------
@@ -227,6 +229,7 @@
     if (fLevel.value) { const [a, b] = fLevel.value.split("-").map(Number); list = list.filter((it) => it.level >= a && it.level <= b); }
     if (fLt.value) list = list.filter((it) => it.lt === fLt.value);
     if (fFas.checked) list = list.filter((it) => it.fas);
+    if (fVid && fVid.checked) list = list.filter((it) => ytId(it.video));
     const s = fSort.value;
     return list.slice().sort((a, b) =>
       s === "cmd" ? String(a.cmd).localeCompare(String(b.cmd), "zh-Hant") :
@@ -306,7 +309,14 @@
     if (!it) return;
     const lvText = crit["程式難易度|" + it.level] || "";
     const ltText = crit["LT 2024+|" + it.lt] || "";
-    const video = safeUrl(it.video);
+    const video = safeUrl(it.video), vid = ytId(video);
+    const player = vid ? `
+      <div class="player" data-vid="${esc(vid)}">
+        <button type="button" class="facade" aria-label="播放教學影片">
+          <img src="https://i.ytimg.com/vi/${esc(vid)}/hqdefault.jpg" alt="" loading="lazy">
+          <span class="play">▶</span><span class="hint-play">播放教學影片</span>
+        </button>
+      </div>` : "";
     const row = (k, v) => v ? `<dt>${k}</dt><dd>${v}</dd>` : "";
     let dlBtn;
     if (it.fas) dlBtn = `<a class="btn primary" href="${esc(fasHref(it.fas))}" download>⬇ 下載 ${esc(it.fas.split("/").pop())}</a>`;
@@ -315,6 +325,7 @@
     $("#detailBody").innerHTML = `
       <h2>${esc(it.cmd || it.file)}</h2>
       <span class="tag cat">${EMOJI[it.cat] || ""} ${esc(it.cat)}</span>
+      ${player}
       <dl class="dl-grid">
         ${row("序號", esc(it.no))}
         ${row("檔名", esc(it.file))}
@@ -327,9 +338,14 @@
       </dl>
       <div class="actions">
         ${dlBtn}
-        ${video ? `<a class="btn video" href="${esc(video)}" target="_blank" rel="noopener">▶ 觀看教學影片</a>` : `<span class="btn off">▶ 教學影片（準備中）</span>`}
+        ${video ? `<a class="btn video" href="${esc(video)}" target="_blank" rel="noopener">▶ 在 YouTube 開啟</a>` : `<span class="btn off">▶ 教學影片（準備中）</span>`}
       </div>`;
     const d = $("#detail");
+    const pl = $("#detailBody .player");
+    if (pl) pl.querySelector(".facade").addEventListener("click", () => {
+      pl.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${pl.dataset.vid}?autoplay=1&rel=0&modestbranding=1" title="教學影片" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+      if (window.LispAudio) window.LispAudio.duck(true);
+    });
     if (!d.open) d.showModal();
     syncHash(it.no);
   }
@@ -367,7 +383,7 @@
       render(); if (hadCat) moveCamera(); syncHash();
     }, 140);
   });
-  [fLevel, fLt, fSort, fFas].forEach((f) => f.addEventListener("change", () => { state.shown = PAGE; render(); }));
+  [fLevel, fLt, fSort, fFas, fVid].filter(Boolean).forEach((f) => f.addEventListener("change", () => { state.shown = PAGE; render(); }));
   moreBtn.addEventListener("click", () => { state.shown += PAGE; render(); });
   cardsEl.addEventListener("click", (e) => { const c = e.target.closest(".card"); if (c) showDetail(c.dataset.no); });
   cardsEl.addEventListener("keydown", (e) => { const c = e.target.closest(".card"); if (c && e.key === "Enter") showDetail(c.dataset.no); });
@@ -377,7 +393,14 @@
   $("#legendBtn").addEventListener("click", showLegend);
   document.querySelectorAll("dialog").forEach((d) => {
     d.addEventListener("click", (e) => { if (e.target === d || e.target.closest("[data-close]")) d.close(); });
-    d.addEventListener("close", () => { if (d.id === "detail") syncHash(); snd("click"); });
+    d.addEventListener("close", () => {
+      if (d.id === "detail") {
+        syncHash();
+        const pl = d.querySelector(".player"); if (pl) pl.innerHTML = "";   // 關閉時停止影片
+        if (window.LispAudio) window.LispAudio.duck(false);
+      }
+      snd("click");
+    });
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "/" && document.activeElement !== qEl && !document.querySelector("dialog[open]")) { e.preventDefault(); qEl.focus(); }

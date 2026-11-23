@@ -5,6 +5,7 @@ window.LispAudio = (() => {
   let enabled = localStorage.getItem(KEY) !== "off";
   // 音量（0–100），存在瀏覽器
   const vol = { music: 50, sfx: 80 };
+  let ducked = false;
   try { Object.assign(vol, JSON.parse(localStorage.getItem("lispVolume") || "{}")); } catch {}
   const musicGain = () => 0.62 * Math.pow(vol.music / 100, 2);
   const sfxGain = () => 1.1 * Math.pow(vol.sfx / 100, 2);
@@ -257,14 +258,22 @@ window.LispAudio = (() => {
     get enabled() { return enabled; },
     get state() { return ctx ? ctx.state : "idle"; },
     get volume() { return { ...vol }; },
+    // 播放教學影片時暫時把背景音樂降到無聲
+    duck(on) {
+      ducked = !!on;
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      musicBus.gain.setTargetAtTime(ducked ? 0 : musicGain(), t, 0.15);
+      ambBus.gain.setTargetAtTime(ducked ? 0 : 2.5 * musicGain(), t, 0.15);
+    },
     setVolume(kind, v) {
       if (!(kind in vol)) return;
       vol[kind] = Math.max(0, Math.min(100, Math.round(v)));
       localStorage.setItem("lispVolume", JSON.stringify(vol));
       if (ctx) {
         const t = ctx.currentTime;
-        musicBus.gain.setTargetAtTime(musicGain(), t, 0.05);
-        ambBus.gain.setTargetAtTime(2.5 * musicGain(), t, 0.05);
+        musicBus.gain.setTargetAtTime(ducked ? 0 : musicGain(), t, 0.05);
+        ambBus.gain.setTargetAtTime(ducked ? 0 : 2.5 * musicGain(), t, 0.05);
         sfxBus.gain.setTargetAtTime(sfxGain(), t, 0.02);
       }
     },
